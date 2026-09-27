@@ -3,16 +3,35 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useUser } from '../../context/UserContext';
 import ScrollReveal from '../../components/ScrollReveal';
 
 export default function LandingPage() {
   const router = useRouter();
+  const { detectCurrentLocation, selectedPanchayat: userPanchayat, isHindi } = useUser();
 
   // Search Bar State
   const [selectedState, setSelectedState] = useState('Madhya Pradesh');
   const [selectedDistrict, setSelectedDistrict] = useState('Ujjain');
   const [selectedBlock, setSelectedBlock] = useState('Badnagar');
   const [selectedPanchayat, setSelectedPanchayat] = useState('Pipla Khurd');
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [detectedLocationName, setDetectedLocationName] = useState<string | null>(null);
+
+  const handleDetectLocation = async () => {
+    setIsDetecting(true);
+    const loc = await detectCurrentLocation();
+    setIsDetecting(false);
+    if (loc) {
+      setSelectedState(loc.state);
+      setSelectedDistrict(loc.district);
+      setSelectedBlock(loc.block);
+      setSelectedPanchayat(loc.panchayat);
+      setDetectedLocationName(`${loc.panchayat}, ${loc.district} (${loc.state})`);
+    } else {
+      alert('Could not access real GPS location. Please ensure location access is enabled in your browser.');
+    }
+  };
 
   // Downscaling comparison state
   const [downscaleMode, setDownscaleMode] = useState<'traditional' | 'mausamsetu'>('mausamsetu');
@@ -195,8 +214,38 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          {/* FEATURE 1: STATE / DISTRICT MICRO-ZONE HERO SEARCH BAR */}
-          <div className="pt-2 sm:pt-4 max-w-3xl 2xl:max-w-5xl mx-auto animate-slideup-slow w-full">
+          {/* FEATURE 1: STATE / DISTRICT MICRO-ZONE HERO SEARCH BAR & GPS DETECTOR */}
+          <div className="pt-2 sm:pt-4 max-w-3xl 2xl:max-w-5xl mx-auto animate-slideup-slow w-full space-y-3">
+            {/* Real GPS Location Detector Button */}
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleDetectLocation}
+                disabled={isDetecting}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/20 hover:bg-white/30 text-white font-black text-xs sm:text-sm border border-white/40 backdrop-blur-md shadow-lg transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                {isDetecting ? (
+                  <>
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    <span>Detecting GPS Location...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-base">📍</span>
+                    <span>Detect My Real Location</span>
+                    <span className="bg-[#ccff00] text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">Live GPS</span>
+                  </>
+                )}
+              </button>
+
+              {detectedLocationName && (
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/40 text-xs font-bold backdrop-blur-md animate-fadeIn">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Real Location: {detectedLocationName}</span>
+                </div>
+              )}
+            </div>
+
             <form
               onSubmit={handleHeroSearchSubmit}
               className="bg-white/95 backdrop-blur-xl p-2.5 sm:p-3 2xl:p-5 rounded-2xl sm:rounded-3xl 2xl:rounded-[36px] shadow-2xl border border-white/40 grid grid-cols-1 sm:grid-cols-4 gap-2 text-slate-900"

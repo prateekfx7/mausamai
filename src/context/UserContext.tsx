@@ -17,6 +17,7 @@ interface UserContextType {
   selectedPanchayat: PanchayatLocation;
   updatePreferences: (updates: Partial<UserPreferences>) => void;
   setPanchayatById: (id: string) => void;
+  detectCurrentLocation: () => Promise<PanchayatLocation | null>;
   resetOnboarding: () => void;
   isHindi: boolean;
 }
@@ -64,6 +65,42 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     updatePreferences({ panchayatId: id });
   };
 
+  const detectCurrentLocation = (): Promise<PanchayatLocation | null> => {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined' || !navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          let closest = PANCHAYAT_DATABASE[0];
+          let minDistance = Infinity;
+
+          PANCHAYAT_DATABASE.forEach((p) => {
+            if (p.lat !== undefined && p.lng !== undefined) {
+              const latDiff = p.lat - latitude;
+              const lngDiff = p.lng - longitude;
+              const dist = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+              if (dist < minDistance) {
+                minDistance = dist;
+                closest = p;
+              }
+            }
+          });
+
+          updatePreferences({ panchayatId: closest.id });
+          resolve(closest);
+        },
+        (error) => {
+          console.warn('Geolocation failed or permission denied:', error);
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+  };
+
   const resetOnboarding = () => {
     updatePreferences({ onboardingComplete: false });
   };
@@ -89,6 +126,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         selectedPanchayat,
         updatePreferences,
         setPanchayatById,
+        detectCurrentLocation,
         resetOnboarding,
         isHindi,
       }}

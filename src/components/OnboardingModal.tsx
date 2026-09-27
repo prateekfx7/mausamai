@@ -6,8 +6,10 @@ import { ADMINISTRATIVE_TREE, PANCHAYAT_DATABASE } from '../data/panchayatData';
 import { CropType, GrowthStage } from '../types';
 
 export default function OnboardingModal() {
-  const { preferences, updatePreferences } = useUser();
+  const { preferences, updatePreferences, detectCurrentLocation, selectedPanchayat } = useUser();
   const [step, setStep] = useState<number>(1);
+  const [isDetectingGps, setIsDetectingGps] = useState<boolean>(false);
+  const [gpsDetectedInfo, setGpsDetectedInfo] = useState<string | null>(null);
 
   // Temporary selection state during wizard
   const [selectedState, setSelectedState] = useState<string>('Maharashtra');
@@ -15,6 +17,20 @@ export default function OnboardingModal() {
   const [selectedBlock, setSelectedBlock] = useState<string>('Niphad');
   const [selectedPanchayatId, setSelectedPanchayatId] = useState<string>('mh-nsk-nip-pip');
   const [locationMode, setLocationMode] = useState<'current' | 'manual'>('current');
+
+  const handleGpsDetect = async () => {
+    setLocationMode('current');
+    setIsDetectingGps(true);
+    const loc = await detectCurrentLocation();
+    setIsDetectingGps(false);
+    if (loc) {
+      setSelectedState(loc.state);
+      setSelectedDistrict(loc.district);
+      setSelectedBlock(loc.block);
+      setSelectedPanchayatId(loc.id);
+      setGpsDetectedInfo(`${loc.panchayat}, ${loc.district} (${loc.state})`);
+    }
+  };
 
   const [selectedCrop, setSelectedCrop] = useState<CropType>(preferences.crop || 'Wheat');
   const [selectedStage, setSelectedStage] = useState<GrowthStage>(preferences.cropStage || 'Flowering');
@@ -153,10 +169,7 @@ export default function OnboardingModal() {
             {/* Mode selection buttons */}
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => {
-                  setLocationMode('current');
-                  setSelectedPanchayatId('mh-nsk-nip-pip');
-                }}
+                onClick={handleGpsDetect}
                 className={`p-3 rounded-2xl border text-left text-xs font-bold transition-all ${
                   locationMode === 'current'
                     ? 'bg-blue-50 border-blue-500 text-blue-700 ring-2 ring-blue-500/20'
@@ -168,9 +181,9 @@ export default function OnboardingModal() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <span>Current GPS</span>
+                  <span>{isDetectingGps ? 'Detecting GPS...' : '📍 Real GPS Location'}</span>
                 </div>
-                <div className="text-[11px] text-slate-500 font-normal">Auto-detect location</div>
+                <div className="text-[11px] text-slate-500 font-normal">Detect live browser location</div>
               </button>
 
               <button
@@ -193,9 +206,19 @@ export default function OnboardingModal() {
 
             {locationMode === 'current' ? (
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1">
-                <div className="text-xs font-bold text-slate-800">Detected Location:</div>
-                <div className="text-sm font-black text-blue-700">Pipla Khurd, Niphad</div>
-                <div className="text-xs text-slate-500">Nashik District, Maharashtra • 3km Grid Ready</div>
+                <div className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                  <span>Detected Location:</span>
+                  <button
+                    onClick={handleGpsDetect}
+                    className="text-[10px] text-blue-600 font-bold hover:underline"
+                  >
+                    🔄 Re-detect
+                  </button>
+                </div>
+                <div className="text-sm font-black text-blue-700">
+                  {gpsDetectedInfo || `${activePanchayatName}, Niphad`}
+                </div>
+                <div className="text-xs text-slate-500">Live GPS Coordinates • 3km Grid Active</div>
               </div>
             ) : (
               <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
