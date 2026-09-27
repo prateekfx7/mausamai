@@ -25,7 +25,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // If viewing Landing Page or Login Page, render full screen without internal SaaS dashboard sidebar
-  if (pathname === '/landing' || pathname === '/login') {
+  if (pathname === '/landing' || pathname === '/login' || pathname === '/') {
     return <>{children}</>;
   }
 

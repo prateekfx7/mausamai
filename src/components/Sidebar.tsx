@@ -20,7 +20,7 @@ export default function Sidebar({
 
   const navItems = [
     {
-      href: '/',
+      href: '/dashboard',
       id: 'dashboard',
       label: isHindi ? 'डैशबोर्ड' : 'Dashboard',
       icon: (

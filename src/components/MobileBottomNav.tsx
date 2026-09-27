@@ -17,7 +17,7 @@ export default function MobileBottomNav({
 
   const navItems = [
     {
-      href: '/',
+      href: '/dashboard',
       id: 'dashboard',
       label: isHindi ? 'होम' : 'Home',
       icon: (
